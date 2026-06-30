@@ -140,6 +140,13 @@
     ? flattenRepliesWithParent(c.replies, c.author, c.id).sort((a, b) => new Date(a.pubDate).getTime() - new Date(b.pubDate).getTime())
     : [];
 
+  let showAllReplies = false;
+
+  $: hiddenRepliesCount = c.replies ? Math.max(0, c.replies.length - 1) : 0;
+  $: hasHiddenReplies = hiddenRepliesCount > 0;
+
+  $: hiddenMobileCount = mobileFlattenedReplies ? Math.max(0, mobileFlattenedReplies.length - 1) : 0;
+  $: hasHiddenMobileReplies = hiddenMobileCount > 0;
 </script>
 
 <div id="comment-{c.id}" data-aos="fade-up" class="flex gap-2 md:gap-3 w-full max-w-full">
@@ -163,9 +170,9 @@
 
       {#if c.isBlogger && bloggerBadgeEnabled}
         {#if bloggerBadgeText}
-          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">{bloggerBadgeText}</span>
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium blogger-badge">{bloggerBadgeText}</span>
         {:else}
-          <svg class="w-5 h-5 text-green-500 dark:text-green-400 align-middle" viewBox="0 0 24 24" fill="currentColor"><path d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.854-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.688-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.634.433 1.218.877 1.688.47.443 1.054.747 1.687.878.633.132 1.29.084 1.897-.136.274.586.705 1.084 1.246 1.439.54.354 1.17.551 1.816.569.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.239 1.266.296 1.903.164.636-.132 1.22-.447 1.68-.907.46-.46.776-1.044.908-1.681s.075-1.299-.165-1.903c.586-.274 1.084-.705 1.439-1.246.354-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246z"/></svg>
+          <svg class="w-5 h-5 blogger-badge-icon align-middle" viewBox="0 0 24 24" fill="currentColor"><path d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.854-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.688-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.634.433 1.218.877 1.688.47.443 1.054.747 1.687.878.633.132 1.29.084 1.897-.136.274.586.705 1.084 1.246 1.439.54.354 1.17.551 1.816.569.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.239 1.266.296 1.903.164.636-.132 1.22-.447 1.68-.907.46-.46.776-1.044.908-1.681s.075-1.299-.165-1.903c.586-.274 1.084-.705 1.439-1.246.354-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246z"/></svg>
         {/if}
       {/if}
 
@@ -332,7 +339,7 @@
     <div class="border-l border-[var(--text-color)]/50 space-y-3 w-full pl-2 md:pl-3">
     {#if !isMobile}
       {#if c.replies && c.replies.length}
-        {#each c.replies as reply}
+        {#each (showAllReplies ? c.replies : c.replies.slice(0, 1)) as reply}
           <div class="w-full max-w-full overflow-hidden mt-4 ">
             <CommentItem 
               c={reply} 
@@ -355,10 +362,18 @@
             />
           </div>
         {/each}
+        {#if hasHiddenReplies}
+          <div class="flex justify-start mt-3">
+            <button on:click={() => showAllReplies = !showAllReplies}
+              class="px-6 py-2.5 rounded-lg border border-[var(--button-border-color)] text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] transition-all duration-300 ease-in-out">
+              {showAllReplies ? t('comments.collapseReplies') : t('comments.showMoreReplies')}
+            </button>
+          </div>
+        {/if}
       {/if}
     {:else}
       {#if depth === 0 && mobileFlattenedReplies.length > 0}
-        {#each mobileFlattenedReplies as flatReply}
+        {#each (showAllReplies ? mobileFlattenedReplies : mobileFlattenedReplies.slice(0, 1)) as flatReply}
           <div class="w-full max-w-full overflow-hidden mt-4 ">
             <CommentItem 
               c={flatReply} 
@@ -382,6 +397,14 @@
             />
           </div>
         {/each}
+        {#if hasHiddenMobileReplies}
+          <div class="flex justify-start mt-3">
+            <button on:click={() => showAllReplies = !showAllReplies}
+              class="px-6 py-2.5 rounded-lg border border-[var(--button-border-color)] text-sm font-medium text-[var(--text-color)] bg-transparent hover:bg-[var(--button-hover-color)] transition-all duration-300 ease-in-out">
+              {showAllReplies ? t('comments.collapseReplies') : t('comments.showMoreReplies')}
+            </button>
+          </div>
+        {/if}
       {/if}
     {/if}
   </div>
@@ -418,7 +441,7 @@
     opacity: 0.85;
   }
   .comment-markdown :global(pre) {
-    background: rgba(0,0,0,0.08);
+    background: color-mix(in srgb, var(--text-color) 8%, transparent);
     border-radius: 4px;
     padding: 0.75rem;
     overflow-x: auto;
@@ -426,7 +449,7 @@
     font-size: 0.85rem;
   }
   .comment-markdown :global(code) {
-    background: rgba(0,0,0,0.06);
+    background: color-mix(in srgb, var(--text-color) 6%, transparent);
     border-radius: 3px;
     padding: 0.15rem 0.3rem;
     font-size: 0.85rem;
@@ -466,10 +489,24 @@
   }
   .comment-markdown :global(th) {
     font-weight: 600;
-    background: rgba(0,0,0,0.04);
+    background: color-mix(in srgb, var(--text-color) 8%, transparent);
   }
   .comment-markdown :global(del) {
     text-decoration: line-through;
     opacity: 0.7;
+  }
+  .blogger-badge {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+  }
+  .blogger-badge-icon {
+    color: #16a34a;
+  }
+  :global([data-theme="dark"])  .blogger-badge {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #05d26b;
+  } 
+  :global([data-theme="dark"])  .blogger-badge-icon {
+    color: #05d26b;
   }
 </style>
